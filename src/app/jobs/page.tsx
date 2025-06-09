@@ -88,11 +88,11 @@ export default function JobBoard() {
       } else {
         setJobs(data);
 
-        // Set unique categories dynamically from jobs data
+        // Set unique categories dynamically from jobs data (type-safe)
         const categoriesSet = new Set(
           data
             .map((job: Job) => job.job_category?.trim())
-            .filter((cat) => cat && cat.length > 0)
+            .filter((cat): cat is string => !!cat && cat.length > 0)
         );
         setUniqueCategories(Array.from(categoriesSet).sort());
       }
