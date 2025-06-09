@@ -26,6 +26,7 @@ interface Job {
   job_details_url?: string;
   job_description_summary?: string;
   job_posted_date?: string;
+  Timestamp?: string;
 }
 
 export default function JobBoard() {
@@ -37,6 +38,7 @@ export default function JobBoard() {
   const [locationFilter, setLocationFilter] = useState("");
   const [jobTypeFilter, setJobTypeFilter] = useState("");
   const [jobCategoryFilter, setJobCategoryFilter] = useState("");
+  const [uniqueCategories, setUniqueCategories] = useState<string[]>([]); // NEW
 
   // Custom dropdown state
   const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
@@ -75,16 +77,24 @@ export default function JobBoard() {
         .select(`
           id, job_title, Company, job_location, job_type, job_category,
           whitelist_matches, blacklist_matches, job_details_url,
-          job_description_summary, job_posted_date
+          job_description_summary, job_posted_date, Timestamp
         `)
         .not("whitelist_matches", "is", null)
         .neq("whitelist_matches", "")
-        .order("job_posted_date", { ascending: false });
+        .order("Timestamp", { ascending: false });
 
       if (error) {
         setErrorMessage(error.message || "Error fetching jobs");
       } else {
         setJobs(data);
+
+        // Set unique categories dynamically from jobs data
+        const categoriesSet = new Set(
+          data
+            .map((job: Job) => job.job_category?.trim())
+            .filter((cat) => cat && cat.length > 0)
+        );
+        setUniqueCategories(Array.from(categoriesSet).sort());
       }
     }
     fetchJobs();
@@ -248,7 +258,7 @@ export default function JobBoard() {
               </div>
             )}
           </div>
-          {/* Other Filters */}
+          {/* Job Type Filter (hardcoded) */}
           <select
             value={jobTypeFilter}
             onChange={(e) => setJobTypeFilter(e.target.value)}
@@ -260,15 +270,18 @@ export default function JobBoard() {
             <option value="contract">Contract</option>
             <option value="part time contract">Part Time Contract</option>
           </select>
+          {/* Category Filter (DYNAMIC) */}
           <select
             value={jobCategoryFilter}
             onChange={(e) => setJobCategoryFilter(e.target.value)}
             className="border border-gray-500 p-2 rounded text-gray-900 bg-white"
           >
             <option value="">All Categories</option>
-            <option value="lawyer">Lawyer</option>
-            <option value="counsel">Counsel</option>
-            <option value="dla">DLA</option>
+            {uniqueCategories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -306,12 +319,7 @@ export default function JobBoard() {
                     <span className="font-bold">Category:</span>{" "}
                     {job.job_category ?? "Not provided"}
                   </p>
-                  <p className="text-gray-600">
-                    <span className="font-bold">Whitelist Matches:</span>{" "}
-                    {job.whitelist_matches && job.whitelist_matches.trim() !== ""
-                      ? job.whitelist_matches
-                      : "Not provided"}
-                  </p>
+                  {/* Whitelist hidden */}
                   <p className="mt-4 text-gray-700">
                     {job.job_description_summary ??
                       "No description available"}
@@ -328,8 +336,8 @@ export default function JobBoard() {
                   )}
                   <p className="mt-2 text-sm text-gray-500">
                     Posted on:{" "}
-                    {job.job_posted_date
-                      ? new Date(job.job_posted_date).toLocaleDateString()
+                    {job.Timestamp
+                      ? new Date(job.Timestamp).toLocaleDateString()
                       : "Unknown"}
                   </p>
                 </div>
