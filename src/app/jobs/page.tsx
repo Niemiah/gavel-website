@@ -26,14 +26,14 @@ export default function JobBoard() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Filters
-  const [countryFilter, setCountryFilter] = useState("");  
+  const [countryFilter, setCountryFilter] = useState("");
   const [regionFilter, setRegionFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
   const [jobTypeFilter, setJobTypeFilter] = useState("");
   const [jobCategoryFilter, setJobCategoryFilter] = useState("");
   const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
 
-  // Dropdown open state
+  // Dropdown state
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
   const [regionDropdownOpen, setRegionDropdownOpen] = useState(false);
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
@@ -41,7 +41,7 @@ export default function JobBoard() {
   const regionRef = useRef<HTMLDivElement>(null);
   const cityRef = useRef<HTMLDivElement>(null);
 
-  // Close all dropdowns on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (countryRef.current && !countryRef.current.contains(e.target as Node)) {
@@ -152,20 +152,55 @@ export default function JobBoard() {
     );
   });
 
-  // (Insert any legal/blacklist filtering here…)
   const finalFilteredJobs = baseFilteredJobs;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {/* Nav Bar */}
       <nav className="bg-white shadow-md fixed w-full z-10 top-0">
-        {/* … your existing nav markup … */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <div className="flex items-center">
+              <span className="text-3xl font-extrabold text-blue-700 mr-2">
+                Gavel
+              </span>
+              <span className="text-lg text-gray-600 italic">
+                Your Legal Career Hub
+              </span>
+            </div>
+            <div className="hidden sm:flex space-x-8">
+              <Link
+                href="/"
+                className="text-lg font-medium text-gray-600 hover:text-blue-700"
+              >
+                Home
+              </Link>
+              <Link
+                href="/about"
+                className="text-lg font-medium text-gray-600 hover:text-blue-700"
+              >
+                About
+              </Link>
+              <Link
+                href="/contact"
+                className="text-lg font-medium text-gray-600 hover:text-blue-700"
+              >
+                Contact
+              </Link>
+            </div>
+          </div>
+        </div>
       </nav>
 
       <div className="pt-20">
         {/* Header */}
         <header className="bg-blue-900 py-16 text-center">
-          {/* … your existing header … */}
+          <h1 className="text-5xl font-black text-white tracking-tight sm:text-6xl">
+            Latest Legal Job Postings
+          </h1>
+          <p className="mt-4 text-2xl text-blue-200">
+            Browse opportunities and advance your legal career with top employers.
+          </p>
         </header>
 
         {/* Search Bar */}
@@ -207,20 +242,14 @@ export default function JobBoard() {
                 strokeWidth={2}
                 viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19 9l-7 7-7-7"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {countryDropdownOpen && (
               <div className="absolute z-20 mt-2 w-56 rounded-xl bg-white shadow-2xl border border-blue-300 overflow-y-auto max-h-72 custom-scrollbar animate-fade-in">
                 <div
                   className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${
-                    !countryFilter
-                      ? "bg-blue-50 text-gray-900"
-                      : "text-gray-900"
+                    !countryFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"
                   }`}
                   onClick={() => {
                     setCountryFilter("");
@@ -235,9 +264,7 @@ export default function JobBoard() {
                   <div
                     key={c.isoCode}
                     className={`cursor-pointer px-4 py-3 transition font-medium ${
-                      countryFilter === c.isoCode
-                        ? "bg-blue-600 text-gray-900"
-                        : "text-gray-800"
+                      countryFilter === c.isoCode ? "bg-blue-600 text-gray-900" : "text-gray-800"
                     } hover:bg-blue-100 hover:text-gray-900`}
                     onClick={() => {
                       setCountryFilter(c.isoCode);
@@ -253,7 +280,7 @@ export default function JobBoard() {
             )}
           </div>
 
-          {/* Region Dropdown (shown only if a country is selected) */}
+          {/* Region Dropdown */}
           {countryFilter && (
             <div className="relative" ref={regionRef}>
               <button
@@ -277,20 +304,14 @@ export default function JobBoard() {
                   strokeWidth={2}
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 9l-7 7-7-7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {regionDropdownOpen && (
                 <div className="absolute z-20 mt-2 w-56 rounded-xl bg-white shadow-2xl border border-blue-300 overflow-y-auto max-h-72 custom-scrollbar animate-fade-in">
                   <div
                     className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${
-                      !regionFilter
-                        ? "bg-blue-50 text-gray-900"
-                        : "text-gray-900"
+                      !regionFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"
                     }`}
                     onClick={() => {
                       setRegionFilter("");
@@ -304,9 +325,7 @@ export default function JobBoard() {
                     <div
                       key={r.isoCode}
                       className={`cursor-pointer px-4 py-3 transition font-medium ${
-                        regionFilter === r.isoCode
-                          ? "bg-blue-600 text-gray-900"
-                          : "text-gray-800"
+                        regionFilter === r.isoCode ? "bg-blue-600 text-gray-900" : "text-gray-800"
                       } hover:bg-blue-100 hover:text-gray-900`}
                       onClick={() => {
                         setRegionFilter(r.isoCode);
@@ -322,7 +341,7 @@ export default function JobBoard() {
             </div>
           )}
 
-          {/* City Dropdown (shown only if a region is selected) */}
+          {/* City Dropdown */}
           {regionFilter && (
             <div className="relative" ref={cityRef}>
               <button
@@ -332,32 +351,23 @@ export default function JobBoard() {
                   cityDropdownOpen ? "ring-2 ring-blue-400" : ""
                 }`}
               >
-                <span>
-                  {cityFilter ? cityFilter : "All Cities"}
-                </span>
+                <span>{cityFilter || "All Cities"}</span>
                 <svg
-                  className={`w-5 h-5 ml-2 transition-transform ${
-                    cityDropdownOpen ? "rotate-180" : ""
-                  }`}
+                  className={`w-5 h-5 ml-2 transition-transform ${cityDropdownOpen ? "rotate-180" : ""
+                    }`}
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={2}
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 9l-7 7-7-7"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {cityDropdownOpen && (
                 <div className="absolute z-20 mt-2 w-56 rounded-xl bg-white shadow-2xl border border-blue-300 overflow-y-auto max-h-72 custom-scrollbar animate-fade-in">
                   <div
                     className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${
-                      !cityFilter
-                        ? "bg-blue-50 text-gray-900"
-                        : "text-gray-900"
+                      !cityFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"
                     }`}
                     onClick={() => {
                       setCityFilter("");
@@ -369,10 +379,8 @@ export default function JobBoard() {
                   {cities.map((c) => (
                     <div
                       key={c.name}
-                      className={`cursor-pointer px-4 py-3 transition	font-medium ${
-                        cityFilter === c.name
-                          ? "bg-blue-600 text-gray-900"
-                          : "text-gray-800"
+                      className={`cursor-pointer px-4 py-3 transition font-medium ${
+                        cityFilter === c.name ? "bg-blue-600 text-gray-900" : "text-gray-800"
                       } hover:bg-blue-100 hover:text-gray-900`}
                       onClick={() => {
                         setCityFilter(c.name);
@@ -447,8 +455,7 @@ export default function JobBoard() {
                     {job.job_category ?? "Not provided"}
                   </p>
                   <p className="mt-4 text-gray-700">
-                    {job.job_description_summary ??
-                      "No description available"}
+                    {job.job_description_summary ?? "No description available"}
                   </p>
                   {job.job_details_url && (
                     <Link
