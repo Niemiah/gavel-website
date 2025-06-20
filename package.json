@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
-    "next": "15.2.1",
+    "country-state-city": "^3.2.1",
+    "next": "^15.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

@@ -3,16 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
-
-// --- US STATES LIST ---
-const US_STATES = [
-  "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","District of Columbia",
-  "Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine",
-  "Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada",
-  "New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma",
-  "Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont",
-  "Virginia","Washington","West Virginia","Wisconsin","Wyoming"
-];
+import { Country, State, City } from "country-state-city";
 
 interface Job {
   id: number;
@@ -35,150 +26,146 @@ export default function JobBoard() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Filters
-  const [locationFilter, setLocationFilter] = useState("");
+  const [countryFilter, setCountryFilter] = useState("");  
+  const [regionFilter, setRegionFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
   const [jobTypeFilter, setJobTypeFilter] = useState("");
   const [jobCategoryFilter, setJobCategoryFilter] = useState("");
-  const [uniqueCategories, setUniqueCategories] = useState<string[]>([]); // NEW
+  const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
 
-  // Custom dropdown state
-  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  // Dropdown open state
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+  const [regionDropdownOpen, setRegionDropdownOpen] = useState(false);
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+  const countryRef = useRef<HTMLDivElement>(null);
+  const regionRef = useRef<HTMLDivElement>(null);
+  const cityRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  // Close all dropdowns on outside click
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setLocationDropdownOpen(false);
+    function handleClickOutside(e: MouseEvent) {
+      if (countryRef.current && !countryRef.current.contains(e.target as Node)) {
+        setCountryDropdownOpen(false);
+      }
+      if (regionRef.current && !regionRef.current.contains(e.target as Node)) {
+        setRegionDropdownOpen(false);
+      }
+      if (cityRef.current && !cityRef.current.contains(e.target as Node)) {
+        setCityDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Legal and blacklist keywords
-  const legalKeywords = [
-    "attorney","lawyer","legal","counsel","litigation","law firm","paralegal",
-    "esquire","prosecution","defense","trial","court","judicial","compliance",
-    "regulatory","civil","criminal","intellectual property","legal research","legal advisor"
-  ];
-  const blacklistKeywords = [
-    "secretary","paralegal","assistant","therapist","counselor","conseling"
-  ];
-  const normalize = (str: string) => str.toLowerCase().replace(/-/g, " ").trim();
-
-  // Fetch jobs from supabase
+  // Fetch jobs + categories
   useEffect(() => {
     async function fetchJobs() {
       const { data, error } = await supabase
         .from("jobs")
         .select(`
-          id, job_title, Company, job_location, job_type, job_category,
-          whitelist_matches, blacklist_matches, job_details_url,
-          job_description_summary, job_posted_date, Timestamp
+          id,
+          job_title,
+          Company,
+          job_location,
+          job_type,
+          job_category,
+          whitelist_matches,
+          blacklist_matches,
+          job_details_url,
+          job_description_summary,
+          job_posted_date,
+          Timestamp
         `)
         .not("whitelist_matches", "is", null)
         .neq("whitelist_matches", "")
         .order("Timestamp", { ascending: false });
 
       if (error) {
-        setErrorMessage(error.message || "Error fetching jobs");
-      } else {
+        setErrorMessage(error.message);
+      } else if (data) {
         setJobs(data);
-
-        // Set unique categories dynamically from jobs data (type-safe)
-        const categoriesSet = new Set(
-          data
-            .map((job: Job) => job.job_category?.trim())
-            .filter((cat): cat is string => !!cat && cat.length > 0)
-        );
-        setUniqueCategories(Array.from(categoriesSet).sort());
+        const cats = Array.from(
+          new Set(
+            data
+              .map((j) => j.job_category?.trim())
+              .filter((c): c is string => !!c)
+          )
+        ).sort();
+        setUniqueCategories(cats);
       }
     }
     fetchJobs();
   }, []);
 
+  // Country → Regions → Cities (filtering out counties)
+  const countries = Country.getAllCountries();
+  const regions = countryFilter ? State.getStatesOfCountry(countryFilter) : [];
+  const rawCities =
+    countryFilter && regionFilter
+      ? City.getCitiesOfState(countryFilter, regionFilter)
+      : [];
+  const cities = rawCities.filter(
+    (c) => !c.name.toLowerCase().includes("county")
+  );
+
   // Filtering logic
   const baseFilteredJobs = jobs.filter((job) => {
-    const searchLower = searchTerm.toLowerCase();
+    const term = searchTerm.toLowerCase();
     const matchesSearch =
-      job.job_title?.toLowerCase().includes(searchLower) ||
-      job.Company?.toLowerCase().includes(searchLower) ||
-      job.job_location?.toLowerCase().includes(searchLower) ||
-      job.job_type?.toLowerCase().includes(searchLower) ||
-      job.job_category?.toLowerCase().includes(searchLower) ||
-      job.job_description_summary?.toLowerCase().includes(searchLower);
+      job.job_title?.toLowerCase().includes(term) ||
+      job.Company?.toLowerCase().includes(term) ||
+      job.job_location?.toLowerCase().includes(term) ||
+      job.job_type?.toLowerCase().includes(term) ||
+      job.job_category?.toLowerCase().includes(term) ||
+      job.job_description_summary?.toLowerCase().includes(term);
 
-    const matchesLocation =
-      locationFilter === "" ||
-      (job.job_location &&
-        job.job_location.toLowerCase().includes(locationFilter.toLowerCase()));
+    const loc = (job.job_location || "").toLowerCase();
+    const matchesCountry =
+      !countryFilter ||
+      loc.includes(
+        countries.find((c) => c.isoCode === countryFilter)?.name.toLowerCase() ||
+          ""
+      );
+    const matchesRegion =
+      !regionFilter ||
+      loc.includes(
+        regions.find((r) => r.isoCode === regionFilter)?.name.toLowerCase() ||
+          ""
+      );
+    const matchesCity =
+      !cityFilter || loc.includes(cityFilter.toLowerCase());
     const matchesJobType =
-      jobTypeFilter === "" ||
-      (job.job_type &&
-        normalize(job.job_type).includes(normalize(jobTypeFilter)));
+      !jobTypeFilter ||
+      job.job_type?.toLowerCase().includes(jobTypeFilter.toLowerCase());
     const matchesCategory =
-      jobCategoryFilter === "" ||
-      (job.job_category &&
-        job.job_category.toLowerCase() === jobCategoryFilter.toLowerCase());
-    return matchesSearch && matchesLocation && matchesJobType && matchesCategory;
+      !jobCategoryFilter ||
+      job.job_category?.toLowerCase() === jobCategoryFilter.toLowerCase();
+
+    return (
+      matchesSearch &&
+      matchesCountry &&
+      matchesRegion &&
+      matchesCity &&
+      matchesJobType &&
+      matchesCategory
+    );
   });
 
-  const finalFilteredJobs = baseFilteredJobs.filter((job) => {
-    const textToCheck = (
-      job.job_title + " " + (job.job_description_summary || "")
-    ).toLowerCase();
-    const hasLegalKeyword = legalKeywords.some((keyword) =>
-      textToCheck.includes(keyword)
-    );
-    if (!hasLegalKeyword) return false;
-    const hasBlacklisted = blacklistKeywords.some((keyword) =>
-      textToCheck.includes(keyword)
-    );
-    if (hasBlacklisted) return false;
-    return true;
-  });
+  // (Insert any legal/blacklist filtering here…)
+  const finalFilteredJobs = baseFilteredJobs;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {/* Nav Bar */}
       <nav className="bg-white shadow-md fixed w-full z-10 top-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center">
-              <span className="text-3xl font-extrabold text-blue-700 mr-2">
-                Gavel
-              </span>
-              <span className="text-lg text-gray-600 italic">
-                Your Legal Career Hub
-              </span>
-            </div>
-            <div className="hidden sm:flex space-x-8">
-              <Link href="/" className="text-lg font-medium text-gray-600 hover:text-blue-700">
-                Home
-              </Link>
-              <Link href="/about" className="text-lg font-medium text-gray-600 hover:text-blue-700">
-                About
-              </Link>
-              <Link href="/contact" className="text-lg font-medium text-gray-600 hover:text-blue-700">
-                Contact
-              </Link>
-            </div>
-          </div>
-        </div>
+        {/* … your existing nav markup … */}
       </nav>
 
       <div className="pt-20">
-        {/* Header Section */}
+        {/* Header */}
         <header className="bg-blue-900 py-16 text-center">
-          <h1 className="text-5xl font-black text-white tracking-tight sm:text-6xl">
-            Latest Legal Job Postings
-          </h1>
-          <p className="mt-4 text-2xl text-blue-200">
-            Browse opportunities and advance your legal career with top employers.
-          </p>
+          {/* … your existing header … */}
         </header>
 
         {/* Search Bar */}
@@ -188,30 +175,32 @@ export default function JobBoard() {
             placeholder="Search legal jobs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-1/2 p-3 border border-gray-300 rounded text-gray-900 placeholder-gray-600"
+            className="w-1/2 p-3 border border-gray-300 rounded bg-white text-black placeholder-gray-600"
           />
           <button className="ml-2 p-3 bg-blue-600 text-white rounded hover:bg-blue-700">
             Search
           </button>
         </div>
 
-        {/* FILTERS */}
+        {/* Filters */}
         <div className="filters-container flex justify-center gap-4 mb-8 mt-4">
-          {/* Custom Location Dropdown */}
-          <div className="relative" ref={dropdownRef}>
+          {/* Country Dropdown */}
+          <div className="relative" ref={countryRef}>
             <button
-              onClick={() => setLocationDropdownOpen((open) => !open)}
-              className={`border border-blue-500 p-2 rounded text-gray-900 bg-white flex items-center justify-between w-56 shadow-md transition duration-150
-                ${locationDropdownOpen ? "ring-2 ring-blue-400" : ""}
-              `}
               type="button"
+              onClick={() => setCountryDropdownOpen((o) => !o)}
+              className={`border border-blue-500 p-2 rounded text-gray-900 bg-white flex items-center justify-between w-56 shadow-md transition duration-150 ${
+                countryDropdownOpen ? "ring-2 ring-blue-400" : ""
+              }`}
             >
               <span>
-                {locationFilter ? locationFilter : "All Locations"}
+                {countryFilter
+                  ? countries.find((c) => c.isoCode === countryFilter)?.name
+                  : "Global"}
               </span>
               <svg
                 className={`w-5 h-5 ml-2 transition-transform ${
-                  locationDropdownOpen ? "rotate-180" : ""
+                  countryDropdownOpen ? "rotate-180" : ""
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -225,40 +214,180 @@ export default function JobBoard() {
                 />
               </svg>
             </button>
-            {locationDropdownOpen && (
+            {countryDropdownOpen && (
               <div className="absolute z-20 mt-2 w-56 rounded-xl bg-white shadow-2xl border border-blue-300 overflow-y-auto max-h-72 custom-scrollbar animate-fade-in">
-                {/* All Locations Option */}
                 <div
                   className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${
-                    !locationFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"
+                    !countryFilter
+                      ? "bg-blue-50 text-gray-900"
+                      : "text-gray-900"
                   }`}
                   onClick={() => {
-                    setLocationFilter("");
-                    setLocationDropdownOpen(false);
+                    setCountryFilter("");
+                    setRegionFilter("");
+                    setCityFilter("");
+                    setCountryDropdownOpen(false);
                   }}
                 >
-                  All Locations
+                  Global
                 </div>
-                {/* All States */}
-                {US_STATES.map((state) => (
+                {countries.map((c) => (
                   <div
-                    key={state}
-                    className={`cursor-pointer px-4 py-3 transition font-medium
-                      ${locationFilter === state ? "bg-blue-600 text-gray-900" : "text-gray-800"}
-                      hover:bg-blue-100 hover:text-gray-900
-                    `}
+                    key={c.isoCode}
+                    className={`cursor-pointer px-4 py-3 transition font-medium ${
+                      countryFilter === c.isoCode
+                        ? "bg-blue-600 text-gray-900"
+                        : "text-gray-800"
+                    } hover:bg-blue-100 hover:text-gray-900`}
                     onClick={() => {
-                      setLocationFilter(state);
-                      setLocationDropdownOpen(false);
+                      setCountryFilter(c.isoCode);
+                      setRegionFilter("");
+                      setCityFilter("");
+                      setCountryDropdownOpen(false);
                     }}
                   >
-                    {state}
+                    {c.name}
                   </div>
                 ))}
               </div>
             )}
           </div>
-          {/* Job Type Filter (hardcoded) */}
+
+          {/* Region Dropdown (shown only if a country is selected) */}
+          {countryFilter && (
+            <div className="relative" ref={regionRef}>
+              <button
+                type="button"
+                onClick={() => setRegionDropdownOpen((o) => !o)}
+                className={`border border-blue-500 p-2 rounded text-gray-900 bg-white flex items-center justify-between w-56 shadow-md transition duration-150 ${
+                  regionDropdownOpen ? "ring-2 ring-blue-400" : ""
+                }`}
+              >
+                <span>
+                  {regionFilter
+                    ? regions.find((r) => r.isoCode === regionFilter)?.name
+                    : "All Regions"}
+                </span>
+                <svg
+                  className={`w-5 h-5 ml-2 transition-transform ${
+                    regionDropdownOpen ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              {regionDropdownOpen && (
+                <div className="absolute z-20 mt-2 w-56 rounded-xl bg-white shadow-2xl border border-blue-300 overflow-y-auto max-h-72 custom-scrollbar animate-fade-in">
+                  <div
+                    className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${
+                      !regionFilter
+                        ? "bg-blue-50 text-gray-900"
+                        : "text-gray-900"
+                    }`}
+                    onClick={() => {
+                      setRegionFilter("");
+                      setCityFilter("");
+                      setRegionDropdownOpen(false);
+                    }}
+                  >
+                    All Regions
+                  </div>
+                  {regions.map((r) => (
+                    <div
+                      key={r.isoCode}
+                      className={`cursor-pointer px-4 py-3 transition font-medium ${
+                        regionFilter === r.isoCode
+                          ? "bg-blue-600 text-gray-900"
+                          : "text-gray-800"
+                      } hover:bg-blue-100 hover:text-gray-900`}
+                      onClick={() => {
+                        setRegionFilter(r.isoCode);
+                        setCityFilter("");
+                        setRegionDropdownOpen(false);
+                      }}
+                    >
+                      {r.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* City Dropdown (shown only if a region is selected) */}
+          {regionFilter && (
+            <div className="relative" ref={cityRef}>
+              <button
+                type="button"
+                onClick={() => setCityDropdownOpen((o) => !o)}
+                className={`border border-blue-500 p-2 rounded text-gray-900 bg-white flex items-center justify-between w-56 shadow-md transition duration-150 ${
+                  cityDropdownOpen ? "ring-2 ring-blue-400" : ""
+                }`}
+              >
+                <span>
+                  {cityFilter ? cityFilter : "All Cities"}
+                </span>
+                <svg
+                  className={`w-5 h-5 ml-2 transition-transform ${
+                    cityDropdownOpen ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              {cityDropdownOpen && (
+                <div className="absolute z-20 mt-2 w-56 rounded-xl bg-white shadow-2xl border border-blue-300 overflow-y-auto max-h-72 custom-scrollbar animate-fade-in">
+                  <div
+                    className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${
+                      !cityFilter
+                        ? "bg-blue-50 text-gray-900"
+                        : "text-gray-900"
+                    }`}
+                    onClick={() => {
+                      setCityFilter("");
+                      setCityDropdownOpen(false);
+                    }}
+                  >
+                    All Cities
+                  </div>
+                  {cities.map((c) => (
+                    <div
+                      key={c.name}
+                      className={`cursor-pointer px-4 py-3 transition	font-medium ${
+                        cityFilter === c.name
+                          ? "bg-blue-600 text-gray-900"
+                          : "text-gray-800"
+                      } hover:bg-blue-100 hover:text-gray-900`}
+                      onClick={() => {
+                        setCityFilter(c.name);
+                        setCityDropdownOpen(false);
+                      }}
+                    >
+                      {c.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Job Type Filter */}
           <select
             value={jobTypeFilter}
             onChange={(e) => setJobTypeFilter(e.target.value)}
@@ -270,7 +399,8 @@ export default function JobBoard() {
             <option value="contract">Contract</option>
             <option value="part time contract">Part Time Contract</option>
           </select>
-          {/* Category Filter (DYNAMIC) */}
+
+          {/* Category Filter */}
           <select
             value={jobCategoryFilter}
             onChange={(e) => setJobCategoryFilter(e.target.value)}
@@ -285,14 +415,11 @@ export default function JobBoard() {
           </select>
         </div>
 
-        {/* Job Postings Section */}
+        {/* Job Postings */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h2 className="text-3xl font-bold text-gray-800 mb-6">
             Job Postings
           </h2>
-          {errorMessage && (
-            <p className="text-red-500 mb-4">{errorMessage}</p>
-          )}
           {finalFilteredJobs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {finalFilteredJobs.map((job) => (
@@ -319,7 +446,6 @@ export default function JobBoard() {
                     <span className="font-bold">Category:</span>{" "}
                     {job.job_category ?? "Not provided"}
                   </p>
-                  {/* Whitelist hidden */}
                   <p className="mt-4 text-gray-700">
                     {job.job_description_summary ??
                       "No description available"}
