@@ -33,7 +33,7 @@ export default function JobBoard() {
   const [jobCategoryFilter, setJobCategoryFilter] = useState("");
   const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
 
-  // Dropdown state
+  // Dropdown open state
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
   const [regionDropdownOpen, setRegionDropdownOpen] = useState(false);
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
@@ -217,6 +217,11 @@ export default function JobBoard() {
           </button>
         </div>
 
+        {/* Display fetch errors */}
+        {errorMessage && (
+          <p className="mt-4 text-center text-red-500">{errorMessage}</p>
+        )}
+
         {/* Filters */}
         <div className="filters-container flex justify-center gap-4 mb-8 mt-4">
           {/* Country Dropdown */}
@@ -366,9 +371,8 @@ export default function JobBoard() {
               {cityDropdownOpen && (
                 <div className="absolute z-20 mt-2 w-56 rounded-xl bg-white shadow-2xl border border-blue-300 overflow-y-auto max-h-72 custom-scrollbar animate-fade-in">
                   <div
-                    className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${
-                      !cityFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"
-                    }`}
+                    className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${!cityFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"
+                      }`}
                     onClick={() => {
                       setCityFilter("");
                       setCityDropdownOpen(false);
@@ -379,9 +383,8 @@ export default function JobBoard() {
                   {cities.map((c) => (
                     <div
                       key={c.name}
-                      className={`cursor-pointer px-4 py-3 transition font-medium ${
-                        cityFilter === c.name ? "bg-blue-600 text-gray-900" : "text-gray-800"
-                      } hover:bg-blue-100 hover:text-gray-900`}
+                      className={`cursor-pointer px-4 py-3 transition font-medium ${cityFilter === c.name ? "bg-blue-600 text-gray-900" : "text-gray-800"
+                        } hover:bg-blue-100 hover:text-gray-900`}
                       onClick={() => {
                         setCityFilter(c.name);
                         setCityDropdownOpen(false);
@@ -439,20 +442,16 @@ export default function JobBoard() {
                     {job.job_title}
                   </h3>
                   <p className="text-gray-600 mt-2">
-                    <span className="font-bold">Company:</span>{" "}
-                    {job.Company ?? "Not provided"}
+                    <span className="font-bold">Company:</span> {job.Company ?? "Not provided"}
                   </p>
                   <p className="text-gray-600">
-                    <span className="font-bold">Location:</span>{" "}
-                    {job.job_location ?? "Not provided"}
+                    <span className="font-bold">Location:</span> {job.job_location ?? "Not provided"}
                   </p>
                   <p className="text-gray-600">
-                    <span className="font-bold">Type:</span>{" "}
-                    {job.job_type ?? "Not provided"}
+                    <span className="font-bold">Type:</span> {job.job_type ?? "Not provided"}
                   </p>
                   <p className="text-gray-600">
-                    <span className="font-bold">Category:</span>{" "}
-                    {job.job_category ?? "Not provided"}
+                    <span className="font-bold">Category:</span> {job.job_category ?? "Not provided"}
                   </p>
                   <p className="mt-4 text-gray-700">
                     {job.job_description_summary ?? "No description available"}
