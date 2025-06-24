@@ -18,6 +18,7 @@ interface Job {
   job_description_summary?: string;
   job_posted_date?: string;
   Timestamp?: string;
+  [key: string]: any; // for "Categories Types"
 }
 
 export default function JobBoard() {
@@ -32,6 +33,12 @@ export default function JobBoard() {
   const [jobTypeFilter, setJobTypeFilter] = useState("");
   const [jobCategoryFilter, setJobCategoryFilter] = useState("");
   const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
+
+  // Categories Types filter state
+  const [categoryTypeFilters, setCategoryTypeFilters] = useState<{ [key: string]: boolean }>({
+    "In House": false,
+    "Law Firm": false,
+  });
 
   // Dropdown open state
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
@@ -70,6 +77,7 @@ export default function JobBoard() {
           job_location,
           job_type,
           job_category,
+          "Categories Types",
           whitelist_matches,
           blacklist_matches,
           job_details_url,
@@ -142,17 +150,37 @@ export default function JobBoard() {
       !jobCategoryFilter ||
       job.job_category?.toLowerCase() === jobCategoryFilter.toLowerCase();
 
+    // Categories Types filter
+    const inHouseChecked = categoryTypeFilters["In House"];
+    const lawFirmChecked = categoryTypeFilters["Law Firm"];
+    let matchesCategoryType = true;
+    const jobCategoryType = job["Categories Types"];
+    if (inHouseChecked || lawFirmChecked) {
+      matchesCategoryType =
+        (inHouseChecked && jobCategoryType === "In House") ||
+        (lawFirmChecked && jobCategoryType === "Law Firm");
+    }
+
     return (
       matchesSearch &&
       matchesCountry &&
       matchesRegion &&
       matchesCity &&
       matchesJobType &&
-      matchesCategory
+      matchesCategory &&
+      matchesCategoryType
     );
   });
 
   const finalFilteredJobs = baseFilteredJobs;
+
+  // Checkbox change handler
+  const handleCategoryTypeCheckbox = (type: string) => {
+    setCategoryTypeFilters((prev) => ({
+      ...prev,
+      [type]: !prev[type],
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -203,8 +231,8 @@ export default function JobBoard() {
           </p>
         </header>
 
-        {/* Search Bar */}
-        <div className="search-bar-container text-center mt-8">
+        {/* Search Bar + Checkboxes */}
+        <div className="search-bar-container flex justify-center items-center mt-8 gap-4">
           <input
             type="text"
             placeholder="Search legal jobs..."
@@ -215,6 +243,28 @@ export default function JobBoard() {
           <button className="ml-2 p-3 bg-blue-600 text-white rounded hover:bg-blue-700">
             Search
           </button>
+
+          {/* Checkboxes for Categories Types */}
+          <div className="flex items-center ml-6 gap-4">
+            <label className="flex items-center text-gray-700 font-medium">
+              <input
+                type="checkbox"
+                checked={categoryTypeFilters["In House"]}
+                onChange={() => handleCategoryTypeCheckbox("In House")}
+                className="mr-2 accent-blue-600"
+              />
+              In House
+            </label>
+            <label className="flex items-center text-gray-700 font-medium">
+              <input
+                type="checkbox"
+                checked={categoryTypeFilters["Law Firm"]}
+                onChange={() => handleCategoryTypeCheckbox("Law Firm")}
+                className="mr-2 accent-blue-600"
+              />
+              Law Firm
+            </label>
+          </div>
         </div>
 
         {/* Display fetch errors */}
@@ -229,9 +279,7 @@ export default function JobBoard() {
             <button
               type="button"
               onClick={() => setCountryDropdownOpen((o) => !o)}
-              className={`border border-blue-500 p-2 rounded text-gray-900 bg-white flex items-center justify-between w-56 shadow-md transition duration-150 ${
-                countryDropdownOpen ? "ring-2 ring-blue-400" : ""
-              }`}
+              className={`border border-blue-500 p-2 rounded text-gray-900 bg-white flex items-center justify-between w-56 shadow-md transition duration-150 ${countryDropdownOpen ? "ring-2 ring-blue-400" : ""}`}
             >
               <span>
                 {countryFilter
@@ -239,9 +287,7 @@ export default function JobBoard() {
                   : "Global"}
               </span>
               <svg
-                className={`w-5 h-5 ml-2 transition-transform ${
-                  countryDropdownOpen ? "rotate-180" : ""
-                }`}
+                className={`w-5 h-5 ml-2 transition-transform ${countryDropdownOpen ? "rotate-180" : ""}`}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={2}
@@ -253,9 +299,7 @@ export default function JobBoard() {
             {countryDropdownOpen && (
               <div className="absolute z-20 mt-2 w-56 rounded-xl bg-white shadow-2xl border border-blue-300 overflow-y-auto max-h-72 custom-scrollbar animate-fade-in">
                 <div
-                  className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${
-                    !countryFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"
-                  }`}
+                  className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${!countryFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"}`}
                   onClick={() => {
                     setCountryFilter("");
                     setRegionFilter("");
@@ -268,9 +312,7 @@ export default function JobBoard() {
                 {countries.map((c) => (
                   <div
                     key={c.isoCode}
-                    className={`cursor-pointer px-4 py-3 transition font-medium ${
-                      countryFilter === c.isoCode ? "bg-blue-600 text-gray-900" : "text-gray-800"
-                    } hover:bg-blue-100 hover:text-gray-900`}
+                    className={`cursor-pointer px-4 py-3 transition font-medium ${countryFilter === c.isoCode ? "bg-blue-600 text-gray-900" : "text-gray-800"} hover:bg-blue-100 hover:text-gray-900`}
                     onClick={() => {
                       setCountryFilter(c.isoCode);
                       setRegionFilter("");
@@ -291,9 +333,7 @@ export default function JobBoard() {
               <button
                 type="button"
                 onClick={() => setRegionDropdownOpen((o) => !o)}
-                className={`border border-blue-500 p-2 rounded text-gray-900 bg-white flex items-center justify-between w-56 shadow-md transition duration-150 ${
-                  regionDropdownOpen ? "ring-2 ring-blue-400" : ""
-                }`}
+                className={`border border-blue-500 p-2 rounded text-gray-900 bg-white flex items-center justify-between w-56 shadow-md transition duration-150 ${regionDropdownOpen ? "ring-2 ring-blue-400" : ""}`}
               >
                 <span>
                   {regionFilter
@@ -301,9 +341,7 @@ export default function JobBoard() {
                     : "All Regions"}
                 </span>
                 <svg
-                  className={`w-5 h-5 ml-2 transition-transform ${
-                    regionDropdownOpen ? "rotate-180" : ""
-                  }`}
+                  className={`w-5 h-5 ml-2 transition-transform ${regionDropdownOpen ? "rotate-180" : ""}`}
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={2}
@@ -315,9 +353,7 @@ export default function JobBoard() {
               {regionDropdownOpen && (
                 <div className="absolute z-20 mt-2 w-56 rounded-xl bg-white shadow-2xl border border-blue-300 overflow-y-auto max-h-72 custom-scrollbar animate-fade-in">
                   <div
-                    className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${
-                      !regionFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"
-                    }`}
+                    className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${!regionFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"}`}
                     onClick={() => {
                       setRegionFilter("");
                       setCityFilter("");
@@ -329,9 +365,7 @@ export default function JobBoard() {
                   {regions.map((r) => (
                     <div
                       key={r.isoCode}
-                      className={`cursor-pointer px-4 py-3 transition font-medium ${
-                        regionFilter === r.isoCode ? "bg-blue-600 text-gray-900" : "text-gray-800"
-                      } hover:bg-blue-100 hover:text-gray-900`}
+                      className={`cursor-pointer px-4 py-3 transition font-medium ${regionFilter === r.isoCode ? "bg-blue-600 text-gray-900" : "text-gray-800"} hover:bg-blue-100 hover:text-gray-900`}
                       onClick={() => {
                         setRegionFilter(r.isoCode);
                         setCityFilter("");
@@ -352,14 +386,11 @@ export default function JobBoard() {
               <button
                 type="button"
                 onClick={() => setCityDropdownOpen((o) => !o)}
-                className={`border border-blue-500 p-2 rounded text-gray-900 bg-white flex items-center justify-between w-56 shadow-md transition duration-150 ${
-                  cityDropdownOpen ? "ring-2 ring-blue-400" : ""
-                }`}
+                className={`border border-blue-500 p-2 rounded text-gray-900 bg-white flex items-center justify-between w-56 shadow-md transition duration-150 ${cityDropdownOpen ? "ring-2 ring-blue-400" : ""}`}
               >
                 <span>{cityFilter || "All Cities"}</span>
                 <svg
-                  className={`w-5 h-5 ml-2 transition-transform ${cityDropdownOpen ? "rotate-180" : ""
-                    }`}
+                  className={`w-5 h-5 ml-2 transition-transform ${cityDropdownOpen ? "rotate-180" : ""}`}
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={2}
@@ -371,8 +402,7 @@ export default function JobBoard() {
               {cityDropdownOpen && (
                 <div className="absolute z-20 mt-2 w-56 rounded-xl bg-white shadow-2xl border border-blue-300 overflow-y-auto max-h-72 custom-scrollbar animate-fade-in">
                   <div
-                    className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${!cityFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"
-                      }`}
+                    className={`cursor-pointer px-4 py-3 hover:bg-blue-100 font-semibold ${!cityFilter ? "bg-blue-50 text-gray-900" : "text-gray-900"}`}
                     onClick={() => {
                       setCityFilter("");
                       setCityDropdownOpen(false);
@@ -383,8 +413,7 @@ export default function JobBoard() {
                   {cities.map((c) => (
                     <div
                       key={c.name}
-                      className={`cursor-pointer px-4 py-3 transition font-medium ${cityFilter === c.name ? "bg-blue-600 text-gray-900" : "text-gray-800"
-                        } hover:bg-blue-100 hover:text-gray-900`}
+                      className={`cursor-pointer px-4 py-3 transition font-medium ${cityFilter === c.name ? "bg-blue-600 text-gray-900" : "text-gray-800"} hover:bg-blue-100 hover:text-gray-900`}
                       onClick={() => {
                         setCityFilter(c.name);
                         setCityDropdownOpen(false);
@@ -456,22 +485,37 @@ export default function JobBoard() {
                   <p className="mt-4 text-gray-700">
                     {job.job_description_summary ?? "No description available"}
                   </p>
-                  {job.job_details_url && (
-                    <Link
-                      href={job.job_details_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-4 inline-block text-blue-500 hover:underline font-medium"
-                    >
-                      View Posting
-                    </Link>
-                  )}
-                  <p className="mt-2 text-sm text-gray-500">
-                    Posted on:{" "}
-                    {job.Timestamp
-                      ? new Date(job.Timestamp).toLocaleDateString()
-                      : "Unknown"}
-                  </p>
+
+                  {/* NEW: link, date, and badge all in a row */}
+                  <div className="flex items-center justify-between mt-4">
+                    <div>
+                      {job.job_details_url && (
+                        <Link
+                          href={job.job_details_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block text-blue-500 hover:underline font-medium mr-4"
+                        >
+                          View Posting
+                        </Link>
+                      )}
+                      <span className="text-sm text-gray-500">
+                        Posted on:{" "}
+                        {job.Timestamp
+                          ? new Date(job.Timestamp).toLocaleDateString()
+                          : "Unknown"}
+                      </span>
+                    </div>
+                    {job["Categories Types"] && (
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        job["Categories Types"] === "In House"
+                          ? "bg-green-100 text-green-800 border border-green-400"
+                          : "bg-indigo-100 text-indigo-800 border border-indigo-400"
+                      }`}>
+                        {job["Categories Types"]}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
