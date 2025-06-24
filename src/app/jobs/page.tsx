@@ -18,7 +18,7 @@ interface Job {
   job_description_summary?: string;
   job_posted_date?: string;
   Timestamp?: string;
-  [key: string]: any; // for "Categories Types"
+  "Categories Types"?: string;// for "Categories Types"
 }
 
 export default function JobBoard() {
